@@ -53,7 +53,6 @@ if !name
 endif
 
 if bad
-    print ""
     showhelp
     exit 1
 endif
@@ -121,7 +120,7 @@ ${outdir}/${size}bp/${name}_${size}.map.bg.gz: ${outdir}/${size}bp/map/${name}_@
 ${outdir}/${size}bp/map/${name}_%_${size}.map.bg.gz: ${outdir}/${size}bp/fasta/%_${size}.fa.gz ${index} ${index}.bwt
     <%  chrom="$>".basename()
         job.name = "${name}.${size}.sam.${chrom}"
-        job.walltime = "24:00:00"
+        job.walltime = "48:00:00"
         job.procs = threads+2
         job.mem = "20G"
     %>
