@@ -128,7 +128,7 @@ ${outdir}/${size}bp/map/${name}_%_${size}.map.bg.gz: ${outdir}/${size}bp/fasta/%
     bwa mem -a -t ${threads} ${index} <(gunzip -c $<1) | bin/sam_filter_map.py | bin/calc_mappability.py -bg - | bgzip > $>.tmp && mv $>.tmp $>
 
 
-${outdir}/${size}bp/fasta/%_${size}.fa.gz: ${outdir}/fasta/%.fa
+${outdir}/${size}bp/fasta/%_${size}.fa.gz: ${outdir}/fasta/%.fa.gz
     <%  chrom="$>".basename()
         job.name = "${size}-fasta.${chrom}"
         job.time = "24:00:00"
@@ -137,11 +137,11 @@ ${outdir}/${size}bp/fasta/%_${size}.fa.gz: ${outdir}/fasta/%.fa
     JAVA_OPTS="-Xmx3G" ngsutilsj fasta-genreads --fasta -l ${size} $< | gzip > $>.tmp && mv $>.tmp $>
 
 
-${outdir}/fasta/%.fa: ${fasta}
+${outdir}/fasta/%.fa.gz: ${fasta}
     <%  chrom="$>".basename()
         job.name = "fasta.${chrom}"
         job.time = "24:00:00"
         job.mem = "4G"
     %>
-    JAVA_OPTS="-Xmx3G" ngsutilsj fasta-split --template - $< $% > $>.tmp && mv $>.tmp $>
+    JAVA_OPTS="-Xmx3G" ngsutilsj fasta-split --template - $< $% | gzip > $>.tmp && mv $>.tmp $>
 
