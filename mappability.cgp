@@ -96,7 +96,7 @@ __setup__:
 ${outdir}/${size}bp/${name}_${size}.map.bg.gz.tbi: ${outdir}/${size}bp/${name}_${size}.map.bg.gz
     <%  
         job.name = "${name}.${size}.tbi"
-        job.time = "12:00:00"
+        job.walltime = "12:00:00"
     %>
     tabix -p bed $<
 
@@ -104,7 +104,7 @@ ${outdir}/${size}bp/${name}_${size}.map.bg.gz.tbi: ${outdir}/${size}bp/${name}_$
 ${outdir}/${size}bp/${name}_${size}.map.bg.gz: ${outdir}/${size}bp/map/${name}_@{chrom}_${size}.map.bg.gz
     <%  
         job.name = "${name}.${size}.merge"
-        job.time = "12:00:00"
+        job.walltime = "12:00:00"
     %>
     gunzip -c $< | bgzip > $>.tmp && mv $>.tmp $>
 
@@ -112,7 +112,7 @@ ${outdir}/${size}bp/${name}_${size}.map.bg.gz: ${outdir}/${size}bp/map/${name}_@
 #${outdir}/${size}bp/map/%.map.bg.gz: ${outdir}/${size}bp/map/%.map.gz
 #    <%  chrom="$>".basename()
 #        job.name = "${name}.${size}.bg.${chrom}"
-#        job.time = "24:00:00"
+#        job.walltime = "24:00:00"
 #        job.mem = "4G"
 #    %>
 #    bin/calc_mappability.py -bg $< | bgzip > $>.tmp && mv $>.tmp $>
@@ -121,7 +121,7 @@ ${outdir}/${size}bp/${name}_${size}.map.bg.gz: ${outdir}/${size}bp/map/${name}_@
 ${outdir}/${size}bp/map/${name}_%_${size}.map.bg.gz: ${outdir}/${size}bp/fasta/%_${size}.fa.gz ${index} ${index}.bwt
     <%  chrom="$>".basename()
         job.name = "${name}.${size}.sam.${chrom}"
-        job.time = "24:00:00"
+        job.walltime = "24:00:00"
         job.procs = threads+2
         job.mem = "20G"
     %>
@@ -131,7 +131,7 @@ ${outdir}/${size}bp/map/${name}_%_${size}.map.bg.gz: ${outdir}/${size}bp/fasta/%
 ${outdir}/${size}bp/fasta/%_${size}.fa.gz: ${outdir}/fasta/%.fa.gz
     <%  chrom="$>".basename()
         job.name = "${size}-fasta.${chrom}"
-        job.time = "24:00:00"
+        job.walltime = "24:00:00"
         job.mem = "4G"
     %>
     JAVA_OPTS="-Xmx3G" ngsutilsj fasta-genreads --fasta -l ${size} $< | gzip > $>.tmp && mv $>.tmp $>
@@ -140,7 +140,7 @@ ${outdir}/${size}bp/fasta/%_${size}.fa.gz: ${outdir}/fasta/%.fa.gz
 ${outdir}/fasta/%.fa.gz: ${fasta}
     <%  chrom="$>".basename()
         job.name = "fasta.${chrom}"
-        job.time = "24:00:00"
+        job.walltime = "24:00:00"
         job.mem = "4G"
     %>
     JAVA_OPTS="-Xmx3G" ngsutilsj fasta-split --template - $< $% | gzip > $>.tmp && mv $>.tmp $>
