@@ -1,0 +1,147 @@
+#!/usr/bin/env cgpipe
+#
+# Builds a mappability bedgraph file for a genome and base-size
+#
+# Required:
+#   --fasta genome.fa      Genome FASTA file
+#   --size N               Size of the reads to use (ex: 100, 150)
+#   --name val             Name of the genome (hg38, mm10, etc)
+#
+# Options:
+#   --outdir val           Output directory (default to --name)
+#                          Output will be written to ${outdir}/${size}bp/${name}_${size}.map.bg.gz
+#
+#   --index genome.fa      BWA indexed FASTA file (default to --fasta)
+#   --chrom chr1,chr2...   Comma separated list of chromosomes to include (by default uses all)
+#
+#
+# BWA options:
+#   --threads N            Threads to use
+#
+#
+
+bad = false
+
+if "$(which bwa)" == ""
+    print "Missing bwa from $PATH"
+    bad = true
+endif
+if "$(which tabix)" == ""
+    print "Missing tabix from $PATH"
+    bad = true
+endif
+if "$(which bgzip)" == ""
+    print "Missing bgzip from $PATH"
+    bad = true
+endif
+if "$(which ngsutilsj)" == ""
+    print "Missing ngsutilsj from $PATH"
+    bad = true
+endif
+
+if !fasta
+    print "Missing --fasta!"
+    bad = true
+endif
+if !size
+    print "Missing --size!"
+    bad = true
+endif
+if !name
+    print "Missing --name!"
+    bad = true
+endif
+
+if bad
+    print ""
+    showhelp
+    exit 1
+endif
+
+index ?= fasta
+threads ?= 1
+outdir ?= "${name}"
+
+
+runid ?= "run.$(date +%Y%m%d-%H%M)"
+cgpipe.log = "${outdir}/logs/mappability-${runid}.log"
+cgpipe.joblog = "${outdir}/logs/outfile.txt"
+cgpipe.loglevel = 1
+job.stdout = "${outdir}/logs/"
+job.stderr = "${outdir}/logs/"
+job.env = true
+job.stack="10M"
+
+
+if !chrom
+    print "Determining chromosomes to use..."
+    chrom = "$(grep '^>' ${fasta} | awk '{print $1}' | sed -e 's/>//')".split("\n")
+else
+    chrom = chrom.split(",")
+endif
+
+default_files = []
+default_files += "${outdir}/${size}bp/${name}_${size}.map.bg.gz.tbi"
+
+
+all: ${default_files}
+
+
+__setup__:
+    <% job.shexec = true %>
+    mkdir -p ${outdir}/logs/ ${outdir}/fasta/ ${outdir}/${size}bp/{fasta,map}
+
+
+
+${outdir}/${size}bp/${name}_${size}.map.bg.gz.tbi: ${outdir}/${size}bp/${name}_${size}.map.bg.gz
+    <%  
+        job.name = "${name}.${size}.tbi"
+        job.time = "12:00:00"
+    %>
+    tabix -p bed $<
+
+
+${outdir}/${size}bp/${name}_${size}.map.bg.gz: ${outdir}/${size}bp/map/${name}_@{chrom}_${size}.map.bg.gz
+    <%  
+        job.name = "${name}.${size}.merge"
+        job.time = "12:00:00"
+    %>
+    gunzip -c $< | bgzip > $>.tmp && mv $>.tmp $>
+
+
+#${outdir}/${size}bp/map/%.map.bg.gz: ${outdir}/${size}bp/map/%.map.gz
+#    <%  chrom="$>".basename()
+#        job.name = "${name}.${size}.bg.${chrom}"
+#        job.time = "24:00:00"
+#        job.mem = "4G"
+#    %>
+#    bin/calc_mappability.py -bg $< | bgzip > $>.tmp && mv $>.tmp $>
+#
+
+${outdir}/${size}bp/map/${name}_%_${size}.map.bg.gz: ${outdir}/${size}bp/fasta/%_${size}.fa.gz ${index} ${index}.bwt
+    <%  chrom="$>".basename()
+        job.name = "${name}.${size}.sam.${chrom}"
+        job.time = "24:00:00"
+        job.procs = threads+2
+        job.mem = "20G"
+    %>
+    bwa mem -a -t ${threads} ${index} <(gunzip -c $<1) | bin/sam_filter_map.py | bin/calc_mappability.py -bg - | bgzip > $>.tmp && mv $>.tmp $>
+
+
+${outdir}/${size}bp/fasta/%_${size}.fa.gz: ${outdir}/fasta/%.fa
+    <%  chrom="$>".basename()
+        job.name = "${size}-fasta.${chrom}"
+        job.time = "24:00:00"
+        job.mem = "4G"
+    %>
+    JAVA_OPTS="-Xmx3G" ngsutilsj fasta-genreads --fasta -l ${size} $< | gzip > $>.tmp && mv $>.tmp $>
+
+
+${outdir}/fasta/%.fa: ${fasta}
+    <%  chrom="$>".basename()
+        job.name = "fasta.${chrom}"
+        job.time = "24:00:00"
+        job.mem = "4G"
+    %>
+    JAVA_OPTS="-Xmx3G" ngsutilsj fasta-split --template - $< $% > $>.tmp && mv $>.tmp $>
+
