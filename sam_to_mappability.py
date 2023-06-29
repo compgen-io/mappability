@@ -15,7 +15,7 @@ for line in sys.stdin:
 
     if last_qname != qname:
         if last_qname:
-            sys.stdout.write('%s\t%s\t%s\t%s\n' % (chrom, start, end, 1/count))
+            sys.stdout.write('%s\t%s\t%s\t%s\t%s\n' % (chrom, start, end, count, 1/count))
         last_qname = qname
         count = 0
         best_as = 0
@@ -41,5 +41,5 @@ for line in sys.stdin:
                 count += 1
 
 if last_qname:
-    sys.stdout.write('%s\t%s\t%s\t%s\n' % (chrom, start, end, 1/count))
+    sys.stdout.write('%s\t%s\t%s\t%s\t%s\n' % (chrom, start, end, count, 1/count))
 

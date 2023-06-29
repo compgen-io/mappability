@@ -1,11 +1,14 @@
 #!/bin/bash
 
-cgsub -p 4 -m 12G -t 24:00:00 --stdout logs/ --stderr logs/ --job-output 100bp/hg38F.{@.fa}.map.txt.gz --joblog joblog.txt bwa mem -a -t 4 /N/p/spcg/resources/indexes/GRCh38.p5/genomeF.fa {} \| ./calc_mappability.py \| gzip \> 100bp/hg38F.{@.fa}.map.txt.gz -- 100bp/fasta/*fa
+for size in 100 150; do
+for sex in F M; do
+cgsub -p 4 -m 12G -t 24:00:00 --stdout logs/ --stderr logs/ \
+--job-output ${size}bp/hg38${sex}.{@.fa}.map.txt.gz \
+--job-output ${size}bp/hg38${sex}.{@.fa}.sam.gz  \
+--joblog joblog.txt \
+bwa mem -a -t 4 /N/p/spcg/resources/indexes/GRCh38.p5/genome${sex}.fa {} \| ./sam_filter.py ${size}bp/hg38${sex}.{@.fa}.map.txt.gz \| gzip \> ${size}bp/hg38${sex}.{@.fa}.sam.gz -- ${size}bp/fasta/*fa
 
-cgsub -p 4 -m 12G -t 24:00:00 --stdout logs/ --stderr logs/ --job-output 100bp/hg38M.{@.fa}.map.txt.gz --joblog joblog.txt bwa mem -a -t 4 /N/p/spcg/resources/indexes/GRCh38.p5/genomeM.fa {} \| ./calc_mappability.py \| gzip \> 100bp/hg38M.{@.fa}.map.txt.gz -- 100bp/fasta/*fa
-
-cgsub -p 4 -m 12G -t 24:00:00 --stdout logs/ --stderr logs/ --job-output 150bp/hg38F.{@.fa}.map.txt.gz --joblog joblog.txt bwa mem -a -t 4 /N/p/spcg/resources/indexes/GRCh38.p5/genomeF.fa {} \| ./calc_mappability.py \| gzip \> 150bp/hg38F.{@.fa}.map.txt.gz -- 150bp/fasta/*fa
-
-cgsub -p 4 -m 12G -t 24:00:00 --stdout logs/ --stderr logs/ --job-output 150bp/hg38M.{@.fa}.map.txt.gz --joblog joblog.txt bwa mem -a -t 4 /N/p/spcg/resources/indexes/GRCh38.p5/genomeM.fa {} \| ./calc_mappability.py \| gzip \> 150bp/hg38M.{@.fa}.map.txt.gz -- 150bp/fasta/*fa
+done
+done
 
 
