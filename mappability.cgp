@@ -122,7 +122,7 @@ ${outdir}/${size}bp/map/${name}_%_${size}.map.bg.gz: ${outdir}/${size}bp/fasta/%
         job.name = "${name}.${size}.sam.${chrom}"
         job.walltime = "48:00:00"
         job.procs = threads+2
-        job.mem = "20G"
+        job.mem = "32G"
     %>
     bwa mem -a -t ${threads} ${index} <(gunzip -c $<1) | bin/sam_filter_map.py | bin/calc_mappability.py -bg - | bgzip > $>.tmp && mv $>.tmp $>
 
