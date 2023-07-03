@@ -10,9 +10,7 @@ See example for more details.
 
 Requires: ngsutilsj, bwa, tabix, bgzip
 
-The pipeline is given as a cgpipe pipline with the following options:
-
-    mappability.cgp
+The pipeline is given as a cgpipe pipline with the following options (`mappability.cgp`):
 
     Required:
       --fasta genome.fa      Genome FASTA file
