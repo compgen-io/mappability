@@ -13,12 +13,16 @@ spans that position. So, for example, if half of the reads covering a base have 
 The final output the then compressed into contiguous blocks of regions with the same score 
 in a BedGraph file (see: https://genome.ucsc.edu/goldenPath/help/bedgraph.html). 
 
+Alignment is handled by `bwa`. Read generation and position annotation is handled by `ngsutilsj`. 
+Custom python scripts are included (`/bin`) for alignment filtering and scoring. `cgpipe` is used 
+generate job scripts and optionally submit them to a batch scheduler.
+
 There is an option for using a separate BWA index for the alignments. This options enables things like 
 calculating mappability values for sex specific genomes without generating redundant FASTA reads. 
 
 See example for more details.
 
-Requires: ngsutilsj, bwa, tabix, bgzip
+Requires: ngsutilsj, bwa, tabix, bgzip, cgpipe
 
 The pipeline is given as a cgpipe pipline with the following options (`mappability.cgp`):
 
