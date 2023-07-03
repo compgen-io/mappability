@@ -3,8 +3,10 @@ Mappability
 
 Builds a mappability bedgraph file for a genome and base-size
 
-There is an option for using a separate BWA index to allow for sex-specific
-mappability values. See example for more details.
+There is an option for using a separate BWA index for the alignments. This options enables things like 
+calculating mappability values for sex specific genomes without generating redundant FASTA reads. 
+
+See example for more details.
 
 Requires: ngsutilsj, bwa, tabix, bgzip
 
@@ -28,7 +30,7 @@ The pipeline is given as a cgpipe pipline with the following options:
     BWA options:
       --threads N            Threads to use
 
-Example:
+Example usage (`run.sh`):
 
     #!/bin/bash
 
@@ -52,3 +54,17 @@ Example:
         --threads 4 
 
     done
+
+Example output:
+
+    chr1	10000	10623	1.0
+    chr1	10623	10624	0.9966666666666667
+    chr1	10624	10625	0.9933333333333333
+    chr1	10625	10626	0.99
+    chr1	10626	10627	0.9866666666666667
+    chr1	10627	10628	0.9803921568627452
+    chr1	10628	10629	0.9741176470588235
+    chr1	10629	10630	0.967843137254902
+    chr1	10630	10631	0.9615686274509805
+    chr1	10631	10632	0.955294117647059
+  
