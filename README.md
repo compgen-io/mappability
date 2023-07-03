@@ -1,7 +1,17 @@
 Mappability
 ===
 
-Builds a mappability bedgraph file for a genome and base-size
+Builds a mappability BedGraph file for a given genome FASTA and read-length (bp).
+
+The pipeline works by generating a new FASTA file for each kmer in the genome. It 
+then will align these reads to the full genome and calculate how many times the read 
+aligns perfectly to the genome. The mappability of the read is then calculated as `1/matches`. 
+The mappability for a given position is the mean of the mappability for every read that 
+spans that position. So, for example, if half of the reads covering a base have a score of 
+1.0, but the other half have a score of 0.5, then the mappability for that base will be 0.75.
+
+The final output the then compressed into contiguous blocks of regions with the same score 
+in a BedGraph file (see: https://genome.ucsc.edu/goldenPath/help/bedgraph.html). 
 
 There is an option for using a separate BWA index for the alignments. This options enables things like 
 calculating mappability values for sex specific genomes without generating redundant FASTA reads. 
