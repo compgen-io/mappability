@@ -108,23 +108,23 @@ ${outdir}/${size}bp/${name}_${size}.map.bg.gz: ${outdir}/${size}bp/map/${name}_@
     gunzip -c $< | bgzip > $>.tmp && mv $>.tmp $>
 
 
-#${outdir}/${size}bp/map/%.map.bg.gz: ${outdir}/${size}bp/map/%.map.gz
-#    <%  chrom="$>".basename()
-#        job.name = "${name}.${size}.bg.${chrom}"
-#        job.walltime = "24:00:00"
-#        job.mem = "4G"
-#    %>
-#    bin/calc_mappability.py -bg $< | bgzip > $>.tmp && mv $>.tmp $>
-#
-
-${outdir}/${size}bp/map/${name}_%_${size}.map.bg.gz: ${outdir}/${size}bp/fasta/%_${size}.fa.gz ${index} ${index}.bwt
+${outdir}/${size}bp/map/%.map.bg.gz: ${outdir}/${size}bp/map/%.map.gz
     <%  chrom="$>".basename()
-        job.name = "${name}.${size}.sam.${chrom}"
-        job.walltime = "48:00:00"
-        job.procs = threads+2
-        job.mem = "32G"
+        job.name = "${name}.${size}.bg.${chrom}"
+        job.walltime = "24:00:00"
+        job.mem = "4G"
     %>
-    bwa mem -a -t ${threads} ${index} <(gunzip -c $<1) | bin/sam_filter_map.py | bin/calc_mappability.py -bg - | bgzip > $>.tmp && mv $>.tmp $>
+    bin/calc_mappability2.py -bg $< | bgzip > $>.tmp && mv $>.tmp $>
+
+
+${outdir}/${size}bp/map/${name}_%_${size}.map.gz: ${outdir}/${size}bp/fasta/%_${size}.fa.gz ${index} ${index}.bwt
+    <%  chrom="$>".basename()
+        job.name = "${name}.${size}.map.${chrom}"
+        job.walltime = "48:00:00"
+        job.procs = threads+1
+        job.mem = "36G"
+    %>
+    bwa mem -a -t ${threads} ${index} <(gunzip -c $<1) | bin/sam_filter_map.py | bgzip > $>.tmp && mv $>.tmp $>
 
 
 ${outdir}/${size}bp/fasta/%_${size}.fa.gz: ${outdir}/fasta/%.fa.gz
