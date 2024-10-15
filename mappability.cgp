@@ -114,7 +114,7 @@ ${outdir}/${size}bp/map/%.map.bg.gz: ${outdir}/${size}bp/map/%.map.gz
         job.walltime = "24:00:00"
         job.mem = "4G"
     %>
-    bin/calc_mappability2.py -bg $< | bgzip > $>.tmp && mv $>.tmp $>
+    bin/calc_mappability.py -bg $< | bgzip > $>.tmp && mv $>.tmp $>
 
 
 ${outdir}/${size}bp/map/${name}_%_${size}.map.gz: ${outdir}/${size}bp/fasta/%_${size}.fa.gz ${index} ${index}.bwt

@@ -22,10 +22,10 @@ def mean(vals):
 
     return acc / count
 
+
 class Buffer(object):
     def __init__(self, out):
         self._out = out
-
         self._cur_chrom = ""
         self._cur_start = -1
         self._cur_end = -1
@@ -49,8 +49,8 @@ class Buffer(object):
 
 
 class PositionScore(object):
-    def __init__(self, chrom, pos):
-        self._scores = []
+    def __init__(self, chrom, pos, score):
+        self._scores = [score]
         self._chrom = chrom
         
         # this is a zero-based coordinate
@@ -85,7 +85,6 @@ for fname in fnames:
     cur_chrom = None
 
     for line in f:
-
         cols = line.strip().split('\t')
         chrom = cols[0]
         start = int(cols[1])
@@ -103,33 +102,23 @@ for fname in fnames:
             cur_chrom = chrom
 
         keep = []
-        toss = []
+        valid_pos = set()
 
         for ps in pos_scores:
             if ps._pos >= start and ps._pos < end:
+                ps.add_score(score)
                 keep.append(ps)
+                valid_pos.add(ps._pos)
             else:
-                toss.append(ps)
+                if buffer:
+                    buffer.add(ps._chrom, ps._pos, ps.get_score())
+                else:
+                    ps.write(sys.stdout)
 
         for pos in range(start, end): # this is a zero-based range, so don't add one
-            found = False
-            for ps in keep:
-                if ps._pos == pos:
-                    found = True
-                    break
-
-            if not found:
-                keep.append(PositionScore(chrom, pos))
-
-        for ps in keep:
-            ps.add_score(score)
-        
-
-        for ps in toss:
-            if buffer:
-                buffer.add(ps._chrom, ps._pos, ps.get_score())
-            else:
-                ps.write(sys.stdout)
+            if not pos in valid_pos:
+                ps = PositionScore(chrom, pos, score)
+                keep.append(ps)
 
         pos_scores = keep
 
