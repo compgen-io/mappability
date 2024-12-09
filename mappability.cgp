@@ -16,8 +16,9 @@
 #
 #
 # BWA options:
-#   --threads N            Threads to use
+#   --threads N            Threads to use (if set, will use threads+2 for BWA alignment)
 #
+# Note: this requires being able to submit jobs with a memory limit of 36GB!
 #
 
 bad = false
@@ -58,7 +59,7 @@ if bad
 endif
 
 index ?= fasta
-threads ?= 1
+threads ?= 0
 outdir ?= "${name}"
 
 
@@ -74,11 +75,28 @@ job.stack="10M"
 
 if !chrom
     print "Determining chromosomes to use..."
-    chrom = "$(grep '^>' ${fasta} | awk '{print $1}' | sed -e 's/>//')".split("\n")
+
+    if ("${fasta}.fai".exists() 
+        print "  Found FASTA index, using those values"
+        chrom = "$(cat ${fasta}.fai | awk '{print $1}')".split("\n")
+    else
+        print "  No FASTA index found, finding chomosomes with grep"
+
+        # check to see if FASTA is gzipped first
+        $(gzip -t ${fasta})
+
+        if $? == 0
+            #print "gzipped"
+            chrom = "$(gunzip -c ${fasta} | grep '^>' | awk '{print $1}' | sed -e 's/>//')".split("\n")
+        else
+            #print "plaintext"
+            chrom = "$(grep '^>' ${fasta} | awk '{print $1}' | sed -e 's/>//')".split("\n")
+        endif
+    endif
+    print "  ${chrom}"
 else
     chrom = chrom.split(",")
 endif
-
 default_files = []
 default_files += "${outdir}/${size}bp/${name}_${size}.map.bg.gz.tbi"
 
@@ -121,10 +139,15 @@ ${outdir}/${size}bp/map/${name}_%_${size}.map.gz: ${outdir}/${size}bp/fasta/%_${
     <%  chrom="$>".basename()
         job.name = "${name}.${size}.map.${chrom}"
         job.walltime = "48:00:00"
-        job.procs = threads+1
         job.mem = "36G"
+
+        threadstr=""
+        if threads > 0
+            job.procs = threads+2
+            threadstr = "-t ${threads}"
+        endif
     %>
-    bwa mem -a -t ${threads} ${index} <(gunzip -c $<1) | bin/sam_filter_map.py | bgzip > $>.tmp && mv $>.tmp $>
+    bwa mem -a ${threadstr} ${index} <(gunzip -c $<1) | bin/sam_filter_map.py | bgzip > $>.tmp && mv $>.tmp $>
 
 
 ${outdir}/${size}bp/fasta/%_${size}.fa.gz: ${outdir}/fasta/%.fa.gz
