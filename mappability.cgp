@@ -13,12 +13,13 @@
 #
 #   --index genome.fa      BWA indexed FASTA file (default to --fasta)
 #   --chrom chr1,chr2...   Comma separated list of chromosomes to include (by default uses all)
+#   --maxmem 24G            Default maxiumum memory to use (depends on genome and size, default 24G)
 #
 #
 # BWA options:
 #   --threads N            Threads to use (if set, will use threads+2 for BWA alignment)
 #
-# Note: this requires being able to submit jobs with a memory limit of 36GB!
+# Note: this requires being able to submit jobs with a high memory limit (--maxmem)
 #
 
 bad = false
@@ -61,7 +62,7 @@ endif
 index ?= fasta
 threads ?= 0
 outdir ?= "${name}"
-
+maxmem ?= "24G"
 
 runid ?= "run.$(date +%Y%m%d-%H%M)"
 cgpipe.log = "${outdir}/logs/mappability-${runid}.log"
@@ -139,7 +140,7 @@ ${outdir}/${size}bp/map/${name}_%_${size}.map.gz: ${outdir}/${size}bp/fasta/%_${
     <%  chrom="$>".basename()
         job.name = "${name}.${size}.map.${chrom}"
         job.walltime = "48:00:00"
-        job.mem = "36G"
+        job.mem = maxmem
 
         threadstr=""
         if threads > 0
