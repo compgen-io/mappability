@@ -1,28 +1,19 @@
-Genome Mappability
+Genome mappability
 ===
 
 Builds a mappability BedGraph file for a given genome FASTA and read-length (bp).
 
-The pipeline works by generating a new FASTA file for each kmer in the genome. It 
-then will align these reads to the full genome and calculate how many times the read 
-aligns perfectly to the genome. The mappability of the read is then calculated as `1/matches`. 
-The mappability for a given position is the mean of the mappability for every read that 
-spans that position. So, for example, if half of the reads covering a base have a score of 
-1.0, but the other half have a score of 0.5, then the mappability for that base will be 0.75.
+The pipeline works by generating a new FASTA file for each kmer in the genome. It then will align these reads to the full genome and calculate how many times the read aligns perfectly to the genome. The mappability of the read is then calculated as `1/matches`. The mappability for a given position is the mean of the mappability for every read that spans that position. So, for example, if half of the reads covering a base have a score of 1.0, but the other half have a score of 0.5, then the mappability for that base will be 0.75.
 
-The final output the then compressed into contiguous blocks of regions with the same score 
-in a BedGraph file (see: https://genome.ucsc.edu/goldenPath/help/bedgraph.html). 
+The final output the then compressed into contiguous blocks of regions with the same score in a BedGraph file (see: https://genome.ucsc.edu/goldenPath/help/bedgraph.html). 
 
-Alignment is handled by `bwa`. Read generation and position annotation is handled by `ngsutilsj`. 
-Custom python scripts are included (`/bin`) for alignment filtering and scoring. `cgpipe` is used 
-generate job scripts and optionally submit them to a batch scheduler.
+Alignment is handled by `bwa`. Read generation and position annotation is handled by `ngsutilsj`. Custom python scripts are included (`/bin`) for alignment filtering and scoring. `cgpipe` is used generate job scripts and optionally submit them to a batch scheduler.
 
-There is an option for using a separate BWA index for the alignments. This options enables things like 
-calculating mappability values for sex specific genomes without generating redundant FASTA reads. 
+There is an option for using a separate BWA index for the alignments. This options enables things like calculating mappability values for sex specific genomes without generating redundant FASTA reads. 
 
 See example for more details.
 
-Requires: ngsutilsj, bwa, tabix, bgzip, cgpipe
+Requires: ngsutilsj, bwa, tabix, bgzip, cgpipe, gzip, rename
 
 The pipeline is given as a cgpipe pipline with the following options (`mappability.cgp`):
 
@@ -51,7 +42,7 @@ Example usage (`run.sh`):
     ./mappability.cgp \
         --outdir hg38 \
         --name hg38M \
-        --fasta /N/p/spcg/resources/indexes/GRCh38.p5/genomeM.fa \
+        --fasta genomeM.fa \
         --chrom chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22,chrX,chrY,chrM \
         --size $size \
         --threads 4 
@@ -59,8 +50,8 @@ Example usage (`run.sh`):
     ./mappability.cgp \
         --outdir hg38 \
         --name hg38F \
-        --fasta /N/p/spcg/resources/indexes/GRCh38.p5/genomeM.fa \
-        --index /N/p/spcg/resources/indexes/GRCh38.p5/genomeF.fa \
+        --fasta genomeM.fa \
+        --index genomeF.fa \
         --chrom chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22,chrX,chrM \
         --size $size \
         --threads 4 
