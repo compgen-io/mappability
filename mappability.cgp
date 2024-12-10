@@ -110,7 +110,6 @@ __setup__:
     mkdir -p ${outdir}/logs/ ${outdir}/fasta/ ${outdir}/${size}bp/{fasta,map}
 
 
-
 ${outdir}/${size}bp/${name}_${size}.map.bg.gz.tbi: ${outdir}/${size}bp/${name}_${size}.map.bg.gz
     <%  
         job.name = "${name}.${size}.tbi"
@@ -136,35 +135,48 @@ ${outdir}/${size}bp/map/%.map.bg.gz: ${outdir}/${size}bp/map/%.map.gz
     bin/calc_mappability.py -bg $< | bgzip > $>.tmp && mv $>.tmp $>
 
 
-${outdir}/${size}bp/map/${name}_%_${size}.map.gz: ${outdir}/${size}bp/fasta/%_${size}.fa.gz ${index} ${index}.bwt
-    <%  chrom="$>".basename()
-        job.name = "${name}.${size}.map.${chrom}"
-        job.walltime = "48:00:00"
-        job.mem = maxmem
+for chr in chrom
+    ${outdir}/${size}bp/map/${name}_${chr}_${size}.map.gz: ${outdir}/${size}bp/fasta/${chr}_${size}.1.fa.gz ${index} ${index}.bwt
+        <%
+            job.name = "${name}.${size}.map.${chr}"
+            job.walltime = "48:00:00"
+            job.mem = maxmem
 
-        threadstr=""
-        if threads > 0
-            job.procs = threads+2
-            threadstr = "-t ${threads}"
-        endif
-    %>
-    bwa mem -a ${threadstr} ${index} <(gunzip -c $<1) | bin/sam_filter_map.py | bgzip > $>.tmp && mv $>.tmp $>
+            threadstr=""
+            if threads > 0
+                job.procs = threads+2
+                threadstr = "-t ${threads}"
+            endif
+        %>
+        I=1
+        echo -n "" > $>.tmp
+        while [ -e ${outdir}/${size}bp/fasta/${chr}_${size}.$I.fa.gz ]; do
+            OK=0
+            echo "Processing: ${outdir}/${size}bp/fasta/${chr}_${size}.$I.fa.gz"
+            bwa mem -a ${threadstr} ${index} <(gunzip -c ${outdir}/${size}bp/fasta/${chr}_${size}.$I.fa.gz) | bin/sam_filter_map.py | gzip >> $>.tmp && OK=1
+            if [ $OK -eq 0 ]; then
+                echo "Failed"
+                exit
+            fi
+            let "I=$I+1"
+        done
+        mv $>.tmp $>
 
 
-${outdir}/${size}bp/fasta/%_${size}.fa.gz: ${outdir}/fasta/%.fa.gz
-    <%  chrom="$>".basename()
-        job.name = "${size}-fasta.${chrom}"
-        job.walltime = "24:00:00"
-        job.mem = "4G"
-    %>
-    JAVA_OPTS="-Xmx3G" ngsutilsj fasta-genreads --fasta -l ${size} $< | gzip > $>.tmp && mv $>.tmp $>
+    ${outdir}/${size}bp/fasta/${chr}_${size}.1.fa.gz: ${outdir}/fasta/${chr}.fa.gz
+        <%
+            job.name = "${size}-fasta.${chr}"
+            job.walltime = "24:00:00"
+            job.mem = "5G"
+        %>
+        JAVA_OPTS="-Xmx2G" ngsutilsj fasta-genreads --fasta -l ${size} $< | JAVA_OPTS="-Xmx2G" ngsutilsj fasta-split --gz --split-count 500000 --template ${outdir}/${size}bp/fasta/${chr}_${size}.tmp. - && rename .tmp. . ${outdir}/${size}bp/fasta/${chr}_${size}.tmp.*
 
 
-${outdir}/fasta/%.fa.gz: ${fasta}
-    <%  chrom="$>".basename()
-        job.name = "fasta.${chrom}"
-        job.walltime = "24:00:00"
-        job.mem = "4G"
-    %>
-    JAVA_OPTS="-Xmx3G" ngsutilsj fasta-split --template - $< $% | gzip > $>.tmp && mv $>.tmp $>
-
+    ${outdir}/fasta/${chr}.fa.gz: ${fasta}
+        <%
+            job.name = "fasta.${chr}"
+            job.walltime = "24:00:00"
+            job.mem = "4G"
+        %>
+        JAVA_OPTS="-Xmx3G" ngsutilsj fasta-split --template - $< ${chr} | gzip > $>.tmp && mv $>.tmp $>
+done
