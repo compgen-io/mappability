@@ -60,7 +60,8 @@ class PositionScore(object):
         self._scores.append(score)
 
     def get_score(self):
-        return mean(self._scores)
+        # truncate score to 4 decimal points.
+        return round(mean(self._scores), 4)
 
     def write(self, out):
         out.write('%s\t%s\t%s\t%s\t%s\n' % (self._chrom, self._pos, self._pos+1, self.get_score(), len(self._scores)))

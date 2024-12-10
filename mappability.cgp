@@ -13,8 +13,10 @@
 #
 #   --index genome.fa      BWA indexed FASTA file (default to --fasta)
 #   --chrom chr1,chr2...   Comma separated list of chromosomes to include (by default uses all)
-#   --maxmem 24G            Default maxiumum memory to use (depends on genome and size, default 24G)
-#
+#   --maxmem 24G           Default maxiumum memory to use (depends on genome and size, default 24G)
+#   --split-count N        Number of reads to split the generated FASTA file (default 500,000)
+#                          The generated FASTA file is split into smaller files with N sequences.
+#                          This keeps the required memory for the alignment step much lower.
 #
 # BWA options:
 #   --threads N            Threads to use (if set, will use threads+2 for BWA alignment)
@@ -63,6 +65,7 @@ index ?= fasta
 threads ?= 0
 outdir ?= "${name}"
 maxmem ?= "24G"
+split_count ?= 500000
 
 runid ?= "run.$(date +%Y%m%d-%H%M)"
 cgpipe.log = "${outdir}/logs/mappability-${runid}.log"
@@ -101,6 +104,9 @@ endif
 default_files = []
 default_files += "${outdir}/${size}bp/${name}_${size}.map.bg.gz.tbi"
 
+for chr in chrom
+    default_files += "${outdir}/${size}bp/map/${name}_${size}_${chr}.map.bg.gz.tbi"
+done
 
 all: ${default_files}
 
@@ -118,7 +124,7 @@ ${outdir}/${size}bp/${name}_${size}.map.bg.gz.tbi: ${outdir}/${size}bp/${name}_$
     tabix -p bed $<
 
 
-${outdir}/${size}bp/${name}_${size}.map.bg.gz: ${outdir}/${size}bp/map/${name}_@{chrom}_${size}.map.bg.gz
+${outdir}/${size}bp/${name}_${size}.map.bg.gz: ${outdir}/${size}bp/map/${name}_${size}_@{chrom}.map.bg.gz
     <%  
         job.name = "${name}.${size}.merge"
         job.walltime = "12:00:00"
@@ -126,17 +132,25 @@ ${outdir}/${size}bp/${name}_${size}.map.bg.gz: ${outdir}/${size}bp/map/${name}_@
     gunzip -c $< | bgzip > $>.tmp && mv $>.tmp $>
 
 
-${outdir}/${size}bp/map/%.map.bg.gz: ${outdir}/${size}bp/map/%.map.gz
-    <%  chrom="$>".basename()
-        job.name = "${name}.${size}.bg.${chrom}"
-        job.walltime = "24:00:00"
-        job.mem = "4G"
-    %>
-    bin/calc_mappability.py -bg $< | bgzip > $>.tmp && mv $>.tmp $>
-
-
 for chr in chrom
-    ${outdir}/${size}bp/map/${name}_${chr}_${size}.map.gz: ${outdir}/${size}bp/fasta/${chr}_${size}.1.fa.gz ${index} ${index}.bwt
+    ${outdir}/${size}bp/map/${name}_${size}_${chr}.map.bg.gz.tbi: ${outdir}/${size}bp/map/${name}_${size}_${chr}.map.bg.gz
+        <%
+            job.name = "${name}.${size}.tbi.${chr}"
+            job.walltime = "4:00:00"
+        %>
+        tabix -p bed $<
+
+
+    ${outdir}/${size}bp/map/${name}_${size}_${chr}.map.bg.gz: ${outdir}/${size}bp/map/${name}_${size}_${chr}.map.gz
+        <%
+            job.name = "${name}.${size}.bg.${chr}"
+            job.walltime = "24:00:00"
+            job.mem = "4G"
+        %>
+        bin/calc_mappability.py -bg $< | bgzip > $>.tmp && mv $>.tmp $>
+
+
+    ${outdir}/${size}bp/map/${name}_${size}_${chr}.map.gz: ${outdir}/${size}bp/fasta/${size}_${chr}.1.fa.gz ${index} ${index}.bwt
         <%
             job.name = "${name}.${size}.map.${chr}"
             job.walltime = "48:00:00"
@@ -150,10 +164,10 @@ for chr in chrom
         %>
         I=1
         echo -n "" > $>.tmp
-        while [ -e ${outdir}/${size}bp/fasta/${chr}_${size}.$I.fa.gz ]; do
+        while [ -e ${outdir}/${size}bp/fasta/${size}_${chr}.$I.fa.gz ]; do
             OK=0
-            echo "Processing: ${outdir}/${size}bp/fasta/${chr}_${size}.$I.fa.gz"
-            bwa mem -a ${threadstr} ${index} <(gunzip -c ${outdir}/${size}bp/fasta/${chr}_${size}.$I.fa.gz) | bin/sam_filter_map.py | gzip >> $>.tmp && OK=1
+            echo "Processing: ${outdir}/${size}bp/fasta/${size}_${chr}.$I.fa.gz"
+            bwa mem -a ${threadstr} ${index} <(gunzip -c ${outdir}/${size}bp/fasta/${size}_${chr}.$I.fa.gz) | bin/sam_filter_map.py | gzip >> $>.tmp && OK=1
             if [ $OK -eq 0 ]; then
                 echo "Failed"
                 exit
@@ -163,18 +177,18 @@ for chr in chrom
         mv $>.tmp $>
 
 
-    ${outdir}/${size}bp/fasta/${chr}_${size}.1.fa.gz: ${outdir}/fasta/${chr}.fa.gz
+    ${outdir}/${size}bp/fasta/${size}_${chr}.1.fa.gz: ${outdir}/fasta/${chr}.fa.gz
         <%
-            job.name = "${size}-fasta.${chr}"
+            job.name = "${name}.${size}.fasta.${chr}"
             job.walltime = "24:00:00"
             job.mem = "5G"
         %>
-        JAVA_OPTS="-Xmx2G" ngsutilsj fasta-genreads --fasta -l ${size} $< | JAVA_OPTS="-Xmx2G" ngsutilsj fasta-split --gz --split-count 500000 --template ${outdir}/${size}bp/fasta/${chr}_${size}.tmp. - && rename .tmp. . ${outdir}/${size}bp/fasta/${chr}_${size}.tmp.*
+        JAVA_OPTS="-Xmx2G" ngsutilsj fasta-genreads --fasta -l ${size} $< | JAVA_OPTS="-Xmx2G" ngsutilsj fasta-split --gz --split-count ${split_count} --template ${outdir}/${size}bp/fasta/${size}_${chr}.tmp. - && rename .tmp. . ${outdir}/${size}bp/fasta/${size}_${chr}.tmp.*
 
 
     ${outdir}/fasta/${chr}.fa.gz: ${fasta}
         <%
-            job.name = "fasta.${chr}"
+            job.name = "${name}.fasta.${chr}"
             job.walltime = "24:00:00"
             job.mem = "4G"
         %>
