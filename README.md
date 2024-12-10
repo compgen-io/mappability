@@ -1,4 +1,4 @@
-Mappability
+Genome Mappability
 ===
 
 Builds a mappability BedGraph file for a given genome FASTA and read-length (bp).
@@ -80,3 +80,7 @@ Example output:
     chr1	10630	10631	0.9615686274509805
     chr1	10631	10632	0.955294117647059
   
+
+## Data
+
+Data has been pre-calculated for a variety of fragment lengths for the reference human genome. These are available here: https://github.com/compgen-io/mappability-data
