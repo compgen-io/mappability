@@ -7,7 +7,7 @@ The pipeline works by generating a new FASTA file for each kmer in the genome. I
 
 The final output the then compressed into contiguous blocks of regions with the same score in a BedGraph file (see: https://genome.ucsc.edu/goldenPath/help/bedgraph.html). 
 
-Alignment is handled by `bwa`. Read generation and position annotation is handled by `ngsutilsj`. Custom python scripts are included (`/bin`) for alignment filtering and scoring. `cgpipe` is used generate job scripts and optionally submit them to a batch scheduler.
+Alignment is handled by `bwa`. Read generation and position annotation is handled by [ngsutilsj](https://github.com/compgen-io/ngsutilsj). Custom python scripts are included (`/bin`) for alignment filtering and scoring. [cgpipe](https://github.com/compgen-io/cgpipe) is used generate job scripts and optionally submit them to a batch scheduler.
 
 There is an option for using a separate BWA index for the alignments. This options enables things like calculating mappability values for sex specific genomes without generating redundant FASTA reads. 
 
